@@ -17,10 +17,10 @@ function Layout() {
     <div className="flex h-screen bg-gray-50">
       <Sidebar 
         isOpen={sidebarOpen} 
-        onClose={closeSidebar}
+onClose={closeSidebar}
       />
-<div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-auto">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 overflow-auto pt-6">
           <Outlet />
         </main>
       </div>

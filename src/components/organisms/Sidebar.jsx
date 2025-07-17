@@ -4,8 +4,8 @@ import NavItem from "@/components/molecules/NavItem";
 import ApperIcon from "@/components/ApperIcon";
 import { apiKeyService } from "@/services/api/apiKeyService";
 const Sidebar = ({ className, isOpen, onClose }) => {
-  const [apiKeyStatus, setApiKeyStatus] = useState('checking');
-  
+  const [openRouterStatus, setOpenRouterStatus] = useState('checking');
+  const [scrapeOwlStatus, setScrapeOwlStatus] = useState('checking');
   const navItems = [
     { to: "/generator", icon: "MessageSquare", label: "Reddit Bulk Comment Generator" },
     { to: "/history", icon: "History", label: "History" },
@@ -13,27 +13,41 @@ const Sidebar = ({ className, isOpen, onClose }) => {
     { to: "/settings", icon: "Settings", label: "Settings" }
   ];
 
-  const checkApiKeyStatus = async () => {
-    const apiKey = apiKeyService.getApiKey();
-    if (!apiKey) {
-      setApiKeyStatus('not-set');
-      return;
+const checkApiKeyStatus = async () => {
+    const openRouterKey = apiKeyService.getOpenRouterKey();
+    const scrapeOwlKey = apiKeyService.getScrapeOwlKey();
+    
+    // Check OpenRouter key
+    if (!openRouterKey) {
+      setOpenRouterStatus('not-set');
+    } else {
+      try {
+        const isValid = await apiKeyService.validateOpenRouterKey(openRouterKey);
+        setOpenRouterStatus(isValid ? 'valid' : 'invalid');
+      } catch (error) {
+        setOpenRouterStatus('invalid');
+      }
     }
     
-    try {
-      const isValid = await apiKeyService.validateApiKey(apiKey);
-      setApiKeyStatus(isValid ? 'valid' : 'invalid');
-    } catch (error) {
-      setApiKeyStatus('invalid');
+    // Check ScrapeOwl key
+    if (!scrapeOwlKey) {
+      setScrapeOwlStatus('not-set');
+    } else {
+      try {
+        const isValid = await apiKeyService.validateScrapeOwlKey(scrapeOwlKey);
+        setScrapeOwlStatus(isValid ? 'valid' : 'invalid');
+      } catch (error) {
+        setScrapeOwlStatus('invalid');
+      }
     }
   };
 
   useEffect(() => {
     checkApiKeyStatus();
     
-    // Listen for localStorage changes to update status in real-time
+// Listen for localStorage changes to update status in real-time
     const handleStorageChange = (e) => {
-      if (e.key === 'hypewave_api_key') {
+      if (e.key === 'hypewave_openrouter_api_key' || e.key === 'hypewave_scrapeowl_api_key') {
         checkApiKeyStatus();
       }
     };
@@ -45,20 +59,35 @@ const Sidebar = ({ className, isOpen, onClose }) => {
     };
   }, []);
 
-  const getStatusDisplay = () => {
-    switch (apiKeyStatus) {
+const getStatusDisplay = (status, service) => {
+    switch (status) {
       case 'valid':
-        return { text: 'API Key: Valid', icon: 'CheckCircle', color: 'text-green-600' };
+        return { text: `${service}: Valid`, icon: 'CheckCircle', color: 'text-green-600' };
       case 'invalid':
-        return { text: 'API Key: Invalid', icon: 'XCircle', color: 'text-red-600' };
+        return { text: `${service}: Invalid`, icon: 'XCircle', color: 'text-red-600' };
       case 'not-set':
-        return { text: 'API Key: Not Set', icon: 'AlertCircle', color: 'text-amber-600' };
+        return { text: `${service}: Not Set`, icon: 'AlertCircle', color: 'text-amber-600' };
       default:
-        return { text: 'Checking API Key...', icon: 'Loader', color: 'text-gray-500' };
+        return { text: `Checking ${service}...`, icon: 'Loader', color: 'text-gray-500' };
     }
   };
 
-  const statusDisplay = getStatusDisplay();
+  const openRouterDisplay = getStatusDisplay(openRouterStatus, 'OpenRouter');
+  const scrapeOwlDisplay = getStatusDisplay(scrapeOwlStatus, 'ScrapeOwl');
+
+  const getBothKeysStatus = () => {
+    if (openRouterStatus === 'valid' && scrapeOwlStatus === 'valid') {
+      return { text: 'Both API Keys: Valid', icon: 'CheckCircle', color: 'text-green-600' };
+    } else if (openRouterStatus === 'valid' || scrapeOwlStatus === 'valid') {
+      return { text: 'One API Key Valid', icon: 'AlertCircle', color: 'text-amber-600' };
+    } else if (openRouterStatus === 'not-set' && scrapeOwlStatus === 'not-set') {
+      return { text: 'API Keys: Not Set', icon: 'AlertCircle', color: 'text-amber-600' };
+    } else {
+      return { text: 'API Keys: Invalid', icon: 'XCircle', color: 'text-red-600' };
+    }
+  };
+
+  const combinedStatus = getBothKeysStatus();
 
   return (
     <>
@@ -114,9 +143,18 @@ const Sidebar = ({ className, isOpen, onClose }) => {
           
 {/* Footer */}
           <div className="p-6 border-t border-gray-200">
-            <div className="flex items-center text-sm">
-              <ApperIcon name={statusDisplay.icon} className={`h-4 w-4 mr-2 ${statusDisplay.color}`} />
-              <span className={statusDisplay.color}>{statusDisplay.text}</span>
+            <div className="space-y-2">
+              <div className="flex items-center text-sm">
+                <ApperIcon name={combinedStatus.icon} className={`h-4 w-4 mr-2 ${combinedStatus.color}`} />
+                <span className={combinedStatus.color}>{combinedStatus.text}</span>
+              </div>
+              <div className="flex items-center text-xs text-gray-500">
+                <ApperIcon name={openRouterDisplay.icon} className={`h-3 w-3 mr-1 ${openRouterDisplay.color}`} />
+                <span className={openRouterDisplay.color}>OpenRouter</span>
+                <span className="mx-2">•</span>
+                <ApperIcon name={scrapeOwlDisplay.icon} className={`h-3 w-3 mr-1 ${scrapeOwlDisplay.color}`} />
+                <span className={scrapeOwlDisplay.color}>ScrapeOwl</span>
+              </div>
             </div>
           </div>
         </div>
