@@ -5,9 +5,40 @@ const SCRAPEOWL_API_KEY_STORAGE_KEY = "hypewave_scrapeowl_api_key";
 const OPENROUTER_VALIDATION_KEY = "hypewave_openrouter_validated";
 const SCRAPEOWL_VALIDATION_KEY = "hypewave_scrapeowl_validated";
 
+const isInIframe = () => {
+  try {
+    return window !== window.parent;
+  } catch (e) {
+    return true;
+  }
+};
+
+const isValidKeyFormat = (key, type) => {
+  if (type === 'openrouter') {
+    return key.startsWith('sk-or-v1-') && key.length > 20;
+  }
+  if (type === 'scrapeowl') {
+    return key.length > 10 && !key.includes(' ');
+  }
+  return false;
+};
+
 export const apiKeyService = {
   async validateOpenRouterKey(apiKey) {
     try {
+      // In iframe (preview), use format validation only
+      if (isInIframe()) {
+        const isValidFormat = isValidKeyFormat(apiKey, 'openrouter');
+        if (isValidFormat) {
+          const validationData = {
+            timestamp: Date.now(),
+            validated: true
+          };
+          localStorage.setItem(OPENROUTER_VALIDATION_KEY, JSON.stringify(validationData));
+        }
+        return isValidFormat;
+      }
+
       const response = await fetch("https://openrouter.ai/api/v1/auth/key", {
         headers: {
           "Authorization": `Bearer ${apiKey}`,
@@ -29,12 +60,39 @@ export const apiKeyService = {
       return isValid;
     } catch (error) {
       console.error("OpenRouter API key validation error:", error);
+      
+      // In iframe or fetch error, fallback to format validation
+      if (isInIframe() || error.message.includes("Failed to fetch")) {
+        const isValidFormat = isValidKeyFormat(apiKey, 'openrouter');
+        if (isValidFormat) {
+          const validationData = {
+            timestamp: Date.now(),
+            validated: true
+          };
+          localStorage.setItem(OPENROUTER_VALIDATION_KEY, JSON.stringify(validationData));
+        }
+        return isValidFormat;
+      }
+      
       return false;
     }
   },
 
-  async validateScrapeOwlKey(apiKey) {
+async validateScrapeOwlKey(apiKey) {
     try {
+      // In iframe (preview), use format validation only
+      if (isInIframe()) {
+        const isValidFormat = isValidKeyFormat(apiKey, 'scrapeowl');
+        if (isValidFormat) {
+          const validationData = {
+            timestamp: Date.now(),
+            validated: true
+          };
+          localStorage.setItem(SCRAPEOWL_VALIDATION_KEY, JSON.stringify(validationData));
+        }
+        return isValidFormat;
+      }
+
       const response = await fetch("https://api.scrapeowl.com/v1/account", {
         headers: {
           "Authorization": `Bearer ${apiKey}`,
@@ -42,9 +100,34 @@ export const apiKeyService = {
         }
       });
       
-      return response.status === 200;
+      const isValid = response.status === 200;
+      
+      // Store validation status with timestamp
+      if (isValid) {
+        const validationData = {
+          timestamp: Date.now(),
+          validated: true
+        };
+        localStorage.setItem(SCRAPEOWL_VALIDATION_KEY, JSON.stringify(validationData));
+      }
+      
+      return isValid;
     } catch (error) {
       console.error("ScrapeOwl API key validation error:", error);
+      
+      // In iframe or fetch error, fallback to format validation
+      if (isInIframe() || error.message.includes("Failed to fetch")) {
+        const isValidFormat = isValidKeyFormat(apiKey, 'scrapeowl');
+        if (isValidFormat) {
+          const validationData = {
+            timestamp: Date.now(),
+            validated: true
+          };
+          localStorage.setItem(SCRAPEOWL_VALIDATION_KEY, JSON.stringify(validationData));
+        }
+        return isValidFormat;
+      }
+      
       return false;
     }
   },

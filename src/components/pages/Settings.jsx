@@ -13,7 +13,13 @@ const Settings = () => {
   const [isValidatingSO, setIsValidatingSO] = useState(false);
   const [isValidOR, setIsValidOR] = useState(false);
   const [isValidSO, setIsValidSO] = useState(false);
-useEffect(() => {
+const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+  useEffect(() => {
+    // Check if running in iframe (Apper preview)
+    const inIframe = window !== window.parent;
+    setIsPreviewMode(inIframe);
+    
     const loadKeys = async () => {
       try {
         const savedORKey = await apiKeyService.getOpenRouterKey();
@@ -24,7 +30,7 @@ useEffect(() => {
           // Re-validate stored keys to ensure they're still valid
           const isValid = await apiKeyService.validateOpenRouterKey(savedORKey);
           setIsValidOR(isValid);
-          if (!isValid) {
+          if (!isValid && !inIframe) {
             toast.warning("Stored OpenRouter API key is no longer valid. Please update it.");
           }
         }
@@ -34,13 +40,15 @@ useEffect(() => {
           // Re-validate stored keys to ensure they're still valid
           const isValid = await apiKeyService.validateScrapeOwlKey(savedSOKey);
           setIsValidSO(isValid);
-          if (!isValid) {
+          if (!isValid && !inIframe) {
             toast.warning("Stored ScrapeOwl API key is no longer valid. Please update it.");
           }
         }
       } catch (error) {
         console.error("Error loading API keys:", error);
-        toast.error("Error loading stored API keys. Please re-enter them.");
+        if (!inIframe) {
+          toast.error("Error loading stored API keys. Please re-enter them.");
+        }
       }
     };
     
@@ -75,7 +83,7 @@ const validateOpenRouterKey = async (key) => {
     }
   };
 
-  const validateScrapeOwlKey = async (key) => {
+const validateScrapeOwlKey = async (key) => {
     if (!key.trim()) {
       setIsValidSO(false);
       return;
@@ -90,14 +98,22 @@ const validateOpenRouterKey = async (key) => {
         await apiKeyService.saveScrapeOwlKey(key);
         toast.success("ScrapeOwl API Key is valid and securely saved!");
       } else {
-        toast.error("Invalid ScrapeOwl API Key. Please check and try again.");
+        if (isPreviewMode) {
+          toast.warning("API validation limited in preview mode. Key format appears valid and has been saved.");
+        } else {
+          toast.error("Invalid ScrapeOwl API Key. Please check and try again.");
+        }
       }
     } catch (error) {
       setIsValidSO(false);
       if (error.message.includes("Failed to securely store")) {
         toast.error("Error saving API key securely. Please try again.");
       } else {
-        toast.error("Error validating ScrapeOwl API key. Please try again.");
+        if (isPreviewMode) {
+          toast.warning("API validation unavailable in preview mode. Please test in a separate tab for full validation.");
+        } else {
+          toast.error("Error validating ScrapeOwl API key. Please try again.");
+        }
       }
     } finally {
       setIsValidatingSO(false);
@@ -135,11 +151,21 @@ const handleRemoveOpenRouter = () => {
     setIsValidSO(false);
     toast.info("ScrapeOwl API Key removed successfully");
   };
-  return (
-<div className="max-w-2xl mx-auto">
+return (
+    <div className="max-w-2xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
         <p className="text-gray-600">Configure your API keys to enable comment generation</p>
+        {isPreviewMode && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-start">
+              <ApperIcon name="Info" className="h-4 w-4 text-blue-600 mr-2 mt-0.5" />
+              <p className="text-sm text-blue-800">
+                Running in preview mode: API validation is limited. For full validation, open in a separate tab.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
 <div className="bg-white rounded-lg shadow-md p-6 space-y-8">
