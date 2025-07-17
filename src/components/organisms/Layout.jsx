@@ -18,9 +18,8 @@ const Layout = () => {
     <div className="h-screen flex bg-gray-50">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
-      
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-72">
+{/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <Header onToggleSidebar={toggleSidebar} />
         

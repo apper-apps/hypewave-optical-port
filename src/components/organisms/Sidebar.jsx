@@ -1,14 +1,64 @@
+import { useState, useEffect } from "react";
 import { cn } from "@/utils/cn";
 import NavItem from "@/components/molecules/NavItem";
 import ApperIcon from "@/components/ApperIcon";
-
+import { apiKeyService } from "@/services/api/apiKeyService";
 const Sidebar = ({ className, isOpen, onClose }) => {
+  const [apiKeyStatus, setApiKeyStatus] = useState('checking');
+  
   const navItems = [
     { to: "/generator", icon: "MessageSquare", label: "Reddit Bulk Comment Generator" },
     { to: "/history", icon: "History", label: "History" },
     { to: "/transactions", icon: "CreditCard", label: "Transactions" },
     { to: "/settings", icon: "Settings", label: "Settings" }
   ];
+
+  const checkApiKeyStatus = async () => {
+    const apiKey = apiKeyService.getApiKey();
+    if (!apiKey) {
+      setApiKeyStatus('not-set');
+      return;
+    }
+    
+    try {
+      const isValid = await apiKeyService.validateApiKey(apiKey);
+      setApiKeyStatus(isValid ? 'valid' : 'invalid');
+    } catch (error) {
+      setApiKeyStatus('invalid');
+    }
+  };
+
+  useEffect(() => {
+    checkApiKeyStatus();
+    
+    // Listen for localStorage changes to update status in real-time
+    const handleStorageChange = (e) => {
+      if (e.key === 'hypewave_api_key') {
+        checkApiKeyStatus();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  const getStatusDisplay = () => {
+    switch (apiKeyStatus) {
+      case 'valid':
+        return { text: 'API Key: Valid', icon: 'CheckCircle', color: 'text-green-600' };
+      case 'invalid':
+        return { text: 'API Key: Invalid', icon: 'XCircle', color: 'text-red-600' };
+      case 'not-set':
+        return { text: 'API Key: Not Set', icon: 'AlertCircle', color: 'text-amber-600' };
+      default:
+        return { text: 'Checking API Key...', icon: 'Loader', color: 'text-gray-500' };
+    }
+  };
+
+  const statusDisplay = getStatusDisplay();
 
   return (
     <>
@@ -63,11 +113,11 @@ const Sidebar = ({ className, isOpen, onClose }) => {
             ))}
           </nav>
           
-          {/* Footer */}
+{/* Footer */}
           <div className="p-6 border-t border-gray-200">
-            <div className="flex items-center text-sm text-gray-500">
-              <ApperIcon name="Shield" className="h-4 w-4 mr-2" />
-              <span>All processing happens locally in your browser</span>
+            <div className="flex items-center text-sm">
+              <ApperIcon name={statusDisplay.icon} className={`h-4 w-4 mr-2 ${statusDisplay.color}`} />
+              <span className={statusDisplay.color}>{statusDisplay.text}</span>
             </div>
           </div>
         </div>
