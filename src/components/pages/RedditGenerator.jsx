@@ -21,7 +21,12 @@ const RedditGenerator = () => {
   const [urlError, setUrlError] = useState("");
 
 useEffect(() => {
-    setHasValidApiKeys(apiKeyService.hasValidApiKeys());
+    const checkApiKeys = async () => {
+      const hasKeys = await apiKeyService.hasValidApiKeys();
+      setHasValidApiKeys(hasKeys);
+    };
+    
+    checkApiKeys();
   }, []);
 
   const handleUrlChange = (e) => {

@@ -14,18 +14,37 @@ const Settings = () => {
   const [isValidOR, setIsValidOR] = useState(false);
   const [isValidSO, setIsValidSO] = useState(false);
 useEffect(() => {
-    const savedORKey = apiKeyService.getOpenRouterKey();
-    const savedSOKey = apiKeyService.getScrapeOwlKey();
+    const loadKeys = async () => {
+      try {
+        const savedORKey = await apiKeyService.getOpenRouterKey();
+        const savedSOKey = await apiKeyService.getScrapeOwlKey();
+        
+        if (savedORKey) {
+          setOpenRouterKey(savedORKey);
+          // Re-validate stored keys to ensure they're still valid
+          const isValid = await apiKeyService.validateOpenRouterKey(savedORKey);
+          setIsValidOR(isValid);
+          if (!isValid) {
+            toast.warning("Stored OpenRouter API key is no longer valid. Please update it.");
+          }
+        }
+        
+        if (savedSOKey) {
+          setScrapeOwlKey(savedSOKey);
+          // Re-validate stored keys to ensure they're still valid
+          const isValid = await apiKeyService.validateScrapeOwlKey(savedSOKey);
+          setIsValidSO(isValid);
+          if (!isValid) {
+            toast.warning("Stored ScrapeOwl API key is no longer valid. Please update it.");
+          }
+        }
+      } catch (error) {
+        console.error("Error loading API keys:", error);
+        toast.error("Error loading stored API keys. Please re-enter them.");
+      }
+    };
     
-    if (savedORKey) {
-      setOpenRouterKey(savedORKey);
-      setIsValidOR(true);
-    }
-    
-    if (savedSOKey) {
-      setScrapeOwlKey(savedSOKey);
-      setIsValidSO(true);
-    }
+    loadKeys();
   }, []);
 const validateOpenRouterKey = async (key) => {
     if (!key.trim()) {
@@ -39,14 +58,18 @@ const validateOpenRouterKey = async (key) => {
       setIsValidOR(valid);
       
       if (valid) {
-        apiKeyService.saveOpenRouterKey(key);
-        toast.success("OpenRouter API Key is valid and saved!");
+        await apiKeyService.saveOpenRouterKey(key);
+        toast.success("OpenRouter API Key is valid and securely saved!");
       } else {
         toast.error("Invalid OpenRouter API Key. Please check and try again.");
       }
     } catch (error) {
       setIsValidOR(false);
-      toast.error("Error validating OpenRouter API key. Please try again.");
+      if (error.message.includes("Failed to securely store")) {
+        toast.error("Error saving API key securely. Please try again.");
+      } else {
+        toast.error("Error validating OpenRouter API key. Please try again.");
+      }
     } finally {
       setIsValidatingOR(false);
     }
@@ -64,14 +87,18 @@ const validateOpenRouterKey = async (key) => {
       setIsValidSO(valid);
       
       if (valid) {
-        apiKeyService.saveScrapeOwlKey(key);
-        toast.success("ScrapeOwl API Key is valid and saved!");
+        await apiKeyService.saveScrapeOwlKey(key);
+        toast.success("ScrapeOwl API Key is valid and securely saved!");
       } else {
         toast.error("Invalid ScrapeOwl API Key. Please check and try again.");
       }
     } catch (error) {
       setIsValidSO(false);
-      toast.error("Error validating ScrapeOwl API key. Please try again.");
+      if (error.message.includes("Failed to securely store")) {
+        toast.error("Error saving API key securely. Please try again.");
+      } else {
+        toast.error("Error validating ScrapeOwl API key. Please try again.");
+      }
     } finally {
       setIsValidatingSO(false);
     }
