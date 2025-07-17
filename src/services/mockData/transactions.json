@@ -1,0 +1,32 @@
+[
+  {
+    "id": "txn_001",
+    "date": "2024-01-15",
+    "description": "Monthly Pro Subscription",
+    "amount": 29.99
+  },
+  {
+    "id": "txn_002", 
+    "date": "2024-01-10",
+    "description": "API Credits Purchase",
+    "amount": 15.00
+  },
+  {
+    "id": "txn_003",
+    "date": "2024-01-05",
+    "description": "Premium Features Unlock",
+    "amount": 9.99
+  },
+  {
+    "id": "txn_004",
+    "date": "2023-12-20",
+    "description": "Bulk Comment Package",
+    "amount": 49.99
+  },
+  {
+    "id": "txn_005",
+    "date": "2023-12-15",
+    "description": "Monthly Pro Subscription",
+    "amount": 29.99
+  }
+]
